@@ -1,12 +1,14 @@
 /*
-İkol Bilişim 
+İkol Bilişim
 */
 
 //modul tanimlamalari
 const bleno = require("bleno");
 const WiFiControl = require("wifi-control")
 const wifi = require('node-wifi');
-
+const awsIot = require('aws-iot-device-sdk');
+const  sleep = require('sleep')
+const Gpio = require('onoff').Gpio
 
 // Servislere ait UUID'ler
 const DEVICE_INFORMATION_UUID="0x180A";
@@ -35,75 +37,12 @@ const MODEL_NUMBER="2A24";
 var ss='';
 var ps='';
 var connectionCheck;
+var sensorData;
+var keypath='/home/pi/Desktop/gateway/certs/54296b77b9/private.key';
+var certpath='/home/pi/Desktop/gateway/certs/54296b77b9/cert.crt';
+var capath='/home/pi/Desktop/gateway/certs/54296b77b9/ca.pem';
+var endPoint= 'a3p843671svo75.iot.us-east-1.amazonaws.com';
 
-            //karakteristik siniflari
-/*class ArgumentCharacteristic extends bleno.Characteristic {
-    constructor(uuid, name) {
-        super({
-            uuid: uuid,
-            properties: ["write"],
-            value: null,
-            descriptors: [
-                new bleno.Descriptor({
-                    uuid: "2901",
-                    value: name
-                })
-            ]
-        });
-
-        this.argument = 0;
-        this.name = name;
-    }
-
-    onWriteRequest(data, offset, withoutResponse, callback) {
-        try {
-
-            if(data.length != 1) {
-                callback(this.RESULT_INVALID_ATTRIBUTE_LENGTH);
-                return;
-            }
-            this.argument = data;
-            console.log(`Characteristic ${this.name} degeri ${this.argument}`);
-            console.log("DATA: "+data.toString());
-            callback(this.RESULT_SUCCESS);
-
-        } catch (err) {
-            console.error(err);
-            callback(this.RESULT_UNLIKELY_ERROR);
-        }
-    }
-}*/
-/*class ResultCharacteristic extends bleno.Characteristic {
-    constructor(calcResultFunc) {
-        super({
-            uuid: RESULT_UUID,
-            properties: ["read"],
-            value: null,
-            descriptors: [
-                new bleno.Descriptor({
-                    uuid: "2901",
-                    value: "Calculation result"
-                })
-            ]
-        });
-
-        this.calcResultFunc = calcResultFunc;
-    }
-
-    onReadRequest(offset, callback) {
-        try {
-            const result = this.calcResultFunc();
-            console.log(`Returning result: ${result}`);
-
-            let data = new Buffer(1);
-            data.writeUInt8(result, 0);
-            callback(this.RESULT_SUCCESS, data);
-        } catch (err) {
-            console.error(err);
-            callback(this.RESULT_UNLIKELY_ERROR);
-        }
-    }
-}*/
 class AckArgumentCharacteristic extends bleno.Characteristic {
     constructor(uuid, name) {
         super({
@@ -264,7 +203,7 @@ class ReadArgumentCharacteristic extends bleno.Characteristic {
 
     onReadRequest(offset, callback) {
         try {
-            var data=new Buffer.from("taha")
+            var data=new Buffer.from(sensorData)
             callback(this.RESULT_SUCCESS, data);
         } catch (err) {
             console.error(err);
@@ -351,6 +290,264 @@ class connectionCheckReadArgumentCharacteristic extends bleno.Characteristic {
         }
     }
 }
+class NotifyCharacteristic extends bleno.Characteristic {
+    constructor(uuid,name) {
+        super({
+            uuid: uuid,
+            properties: ["notify","read"],
+            value: null,
+            descriptors: [
+                new bleno.Descriptor({
+                    uuid: "2901",
+                    value: name
+                })
+            ]
+        });
+
+        this.counter = 0;
+    }
+    onReadRequest(offset, callback) {
+        try {
+            let data = new Buffer.from(sensorData)
+            callback(this.RESULT_SUCCESS, data);
+        } catch (err) {
+            console.error(err);
+            callback(this.RESULT_UNLIKELY_ERROR);
+        }
+    }
+    onSubscribe(maxValueSize, updateValueCallback) {
+        console.log(`Counter subscribed, max value size is ${maxValueSize}`);
+        this.updateValueCallback = updateValueCallback;
+    }
+
+    onUnsubscribe() {
+        console.log("Counter unsubscribed");
+        this.updateValueCallback = null;
+    }
+
+    sendNotification(value) {
+        if(this.updateValueCallback) {
+
+            const notificationBytes = new Buffer.from(value);
+            this.updateValueCallback(notificationBytes);
+        }
+    }
+
+    start() {
+        console.log("Starting counter");
+        this.handle = setInterval(() => {
+            this.counter = Math.random().toString();
+            sensorData=this.counter
+            this.sendNotification(this.counter);
+        }, 3000);
+    }
+
+    stop() {
+        console.log("Stopping counter");
+        clearInterval(this.handle);
+        this.handle = null;
+    }
+}
+
+// var device = awsIot.device({
+//     keyPath: keypath,
+//     certPath: certpath,
+//     caPath: capath,
+//     clientId: 'device',
+//     host: endPoint
+// });
+//
+//
+// device
+//     .on('connect', function() {
+//         console.log('connect');
+//         device.subscribe('topic_1');
+//         device.publish('topic_2', JSON.stringify({ test_data: 1}));
+//     });
+//
+// device
+//     .on('message', function(topic, payload) {
+//         console.log('message', topic, payload.toString());
+//     });
+// device
+//     .on('error',function(error){
+//         console.log(error)
+//     })
+//
+//
+//
+// var thingShadows = awsIot.thingShadow({
+//     keyPath: keypath,
+//     certPath: certpath,
+//     caPath: capath,
+//     clientId: 'shadow',
+//     host: endPoint
+// });
+//
+// var clientTokenUpdate;
+//
+//
+// thingShadows.on('connect', function() {
+// //
+// // After connecting to the AWS IoT platform, register interest in the
+// // Thing Shadow named 'RGBLedLamp'.
+// //
+//     console.log('shadow connect')
+//     thingShadows.register( 'IKOL-OFFICE-GATEWAY', {}, function() {
+//
+// // Once registration is complete, update the Thing Shadow named
+// // 'RGBLedLamp' with the latest device state and save the clientToken
+// // so that we can correlate it with status or timeout events.
+// //
+// // Thing shadow state
+// //
+//         var ikolGatewayState = {
+//             "state": {
+//                 reported:
+//                     {
+//                         online: true,
+//                         energyInfo: {
+//                             plugged: true,
+//                             batteryLevel: 100
+//                         },
+//                         armInfo: {
+//                             armed: false,
+//                             dateUpdated: '22082018 14:02 GMT',
+//                             userId: '12314'
+//                         },
+//                         sensors: [
+//                             {
+//                                 id: '12123123',
+//                                 connected: true,
+//                                 battery: 70,
+//                                 active: false,
+//                             },
+//                             {
+//                                 id: '4435562',
+//                                 connected: true,
+//                                 battery: 55,
+//                                 active: true,
+//                                 value: false
+//                             },
+//                             {
+//                                 id: '76856442',
+//                                 connected: true,
+//                                 active: true,
+//                                 value: 5234
+//                             }
+//                         ],
+//                         location: {
+//                             lat: 21.472322132,
+//                             lng: 34.546732234,
+//                             dateUpdated: '22082018 14:02 GMT'
+//                         }
+//                     }
+//             }
+//
+//         };
+//
+//         clientTokenUpdate = thingShadows.update('IKOL-OFFICE-GATEWAY', ikolGatewayState  );
+// //
+// // The update method returns a clientToken; if non-null, this value will
+// // be sent in a 'status' event when the operation completes, allowing you
+// // to know whether or not the update was successful.  If the update method
+// // returns null, it's because another operation is currently in progress and
+// // you'll need to wait until it completes (or times out) before updating the
+// // shadow.
+// //
+// if (clientTokenUpdate === null)
+// {
+//     console.log('update shadow failed, operation still in progress');
+// }
+// });
+// });
+//
+// thingShadows.on('status',
+//     function(thingName, stat, clientToken, stateObject) {
+//         console.log('received '+stat+' on '+thingName+': '+
+//             JSON.stringify(stateObject));
+// //
+// // These events report the status of update(), get(), and delete()
+// // calls.  The clientToken value associated with the event will have
+// // the same value which was returned in an earlier call to get(),
+// // update(), or delete().  Use status events to keep track of the
+// // status of shadow operations.
+// //
+//     });
+//
+// thingShadows.on('delta',
+//     function(thingName, stateObject) {
+//         console.log('received delta on '+thingName+': '+
+//             JSON.stringify(stateObject));
+//     });
+//
+// thingShadows.on('timeout',
+//     function(thingName, clientToken) {
+//         console.log('received timeout on '+thingName+
+//             ' with token: '+ clientToken);
+// //
+// // In the event that a shadow operation times out, you'll receive
+// // one of these events.  The clientToken value associated with the
+// // event will have the same value which was returned in an earlier
+// // call to get(), update(), or delete().
+// //
+//     });
+
+
+
+var LED = new Gpio(4, 'out'); //use GPIO pin 4 as output
+var motionSensor = new Gpio(17, 'in', 'both'); //use GPIO pin 17 as input, and 'both' button presses, and releases should be handled
+
+motionSensor.watch(function (err, value) { //Watch for hardware interrupts on pushButton GPIO, specify callback function
+    if (err) { //if an error
+        console.error('There was an error', err); //output error message to console
+        return;
+    }
+    LED.writeSync(value); //turn LED on or off depending on the button state (0 or 1)
+});
+
+function unexportOnClose() { //function to run when exiting program
+    LED.writeSync(0); // Turn LED off
+    LED.unexport(); // Unexport LED GPIO to free resources
+    pushButton.unexport(); // Unexport Button GPIO to free resources
+};
+
+var floodSensor = new Gpio(27, 'in', 'both'); //use GPIO pin 17 as input, and 'both' button presses, and releases should be handled
+
+floodSensor.watch(function (err, value) { //Watch for hardware interrupts on pushButton GPIO, specify callback function
+    if (err) { //if an error
+        console.error('There was an error', err); //output error message to console
+        return;
+    }
+    LED.writeSync(value); //turn LED on or off depending on the button state (0 or 1)
+});
+
+function unexportOnClose() { //function to run when exiting program
+    LED.writeSync(0); // Turn LED off
+    LED.unexport(); // Unexport LED GPIO to free resources
+    pushButton.unexport(); // Unexport Button GPIO to free resources
+};
+
+var smokeSensor = new Gpio(22, 'in', 'both'); //use GPIO pin 17 as input, and 'both' button presses, and releases should be handled
+
+smokeSensor.watch(function (err, value) { //Watch for hardware interrupts on pushButton GPIO, specify callback function
+    if (err) { //if an error
+        console.error('There was an error', err); //output error message to console
+        return;
+    }
+    LED.writeSync(value); //turn LED on or off depending on the button state (0 or 1)
+});
+
+function unexportOnClose() { //function to run when exiting program
+    LED.writeSync(0); // Turn LED off
+    LED.unexport(); // Unexport LED GPIO to free resources
+    pushButton.unexport(); // Unexport Button GPIO to free resources
+};
+
+process.on('SIGINT', unexportOnClose); //function to run when user closes using ctrl+c
+
+
+
 
 console.log("Starting bleno...");
 process.env['BLENO_DEVICE_NAME'] = 'ikol-Gateway';
@@ -365,7 +562,7 @@ WiFiControl.init({
 bleno.on("stateChange", state => {
 
     if (state === "poweredOn") {
-                            // Local name
+        // Local name
         bleno.startAdvertising("Ikol-IoT", [ONBOARD_SERVICE_UUID,SENSOR_DATA_SERVICE_UUID], err => {
             if (err) console.log(err);
             process.env['BLENO_DEVICE_NAME'] = 'ikol-Gateway';
@@ -388,17 +585,25 @@ bleno.on("advertisingStart", err => {
     }
 
     // karakteristik tanimlamalari
-    let motion = new ReadArgumentCharacteristic(MOTION_UUID, "Motion ");
-    let flood = new ReadArgumentCharacteristic(FLOOD_UUID, "Flood" );
-    let location = new ReadArgumentCharacteristic(LOCATION_UUID,"Location");
-    let battery = new ReadArgumentCharacteristic(SYSTEM_BATTERY_UUID,"Battery");
-    let smoke = new ReadArgumentCharacteristic(SMOKE_UUID,"Smoke");
-    let gatewayBattery = new ReadArgumentCharacteristic(GATEWAY_BATTERY_UUID,"Gateway Battery");
-    let velocity = new ReadArgumentCharacteristic(VELOCITY_UUID,"Velocity");
+    let motion = new NotifyCharacteristic(MOTION_UUID, "Motion ");
+    motion.start()
+    let flood = new NotifyCharacteristic(FLOOD_UUID, "Flood" );
+    flood.start()
+    let location = new NotifyCharacteristic(LOCATION_UUID,"Location");
+    location.start()
+    let battery = new NotifyCharacteristic(SYSTEM_BATTERY_UUID,"Battery");
+    battery.start()
+    let smoke = new NotifyCharacteristic(SMOKE_UUID,"Smoke");
+    smoke.start()
+    let gatewayBattery = new NotifyCharacteristic(GATEWAY_BATTERY_UUID,"Gateway Battery");
+    gatewayBattery.start()
+    let velocity = new NotifyCharacteristic(VELOCITY_UUID,"Velocity");
+    velocity.start()
+    let temperatureHumidity = new NotifyCharacteristic(TEMPERATURE_HUMIDITY_UUID,"Temperature and Humidity");
+    temperatureHumidity.start()
     let ssid = new SSIDArgumentCharacteristic(SSID_UUID,"WIFI SSID");
     let pass = new PassArgumentCharacteristic(PASSWORD_UUID,"Password");
     let acknowledge = new AckArgumentCharacteristic(ACK_UUID,"Connect");
-    let temperatureHumidity = new ReadArgumentCharacteristic(TEMPERATURE_HUMIDITY_UUID,"Temperature and Humidity");
     let searcResult = new SearchArgumentCharacteristic(()=> WiFiControl.scanForWiFi( function(err, response) {
         if (err) console.log(err);
         return response
@@ -452,15 +657,12 @@ bleno.on("advertisingStart", err => {
 
 }); // advertising baslayinca eventi
 
+var mytimer = setInterval(()=>{sensorData=Math.random().toString()},3000)
 
-// diger eventler
+
 bleno.on("advertisingStartError", err => console.log("Bleno: advertisingStartError"));
 bleno.on("advertisingStop", err => console.log("Bleno: advertisingStop"));
 bleno.on("servicesSet", err => console.log("Bleno: servicesSet"));
 bleno.on("servicesSetError", err => console.log("Bleno: servicesSetError"));
 bleno.on("accept",clientAddress=> console.log("Connecting "+clientAddress));
 bleno.on("disconnect", clientAddress => console.log(`Bleno: disconnect ${clientAddress}`));
-
-
-
-
