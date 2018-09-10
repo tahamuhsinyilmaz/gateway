@@ -472,7 +472,7 @@
 47 silly resolved [ { name: 'node',
 47 silly resolved     version: '10.8.0',
 47 silly resolved     description: 'node',
-47 silly resolved     main: 'index.js',
+47 silly resolved     main: 'actions.js',
 47 silly resolved     keywords: [ 'runtime' ],
 47 silly resolved     repository:
 47 silly resolved      { type: 'git',

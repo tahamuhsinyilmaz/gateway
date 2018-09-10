@@ -8,17 +8,16 @@
   "dependencies": {
     "aws-iot-device-sdk": "^2.2.1",
     "bleno": "^0.5.0",
-    "cookie-parser": "~1.4.3",
     "debug": "~2.6.9",
-    "express": "~4.16.0",
-    "http-errors": "~1.6.2",
-    "morgan": "~1.9.0",
     "noble": "^1.9.1",
     "node-wifi": "^2.0.4",
     "onoff": "^3.2.1",
     "pi-wifi": "^1.2.0",
-    "pug": "2.0.0-beta11",
+    "redux": "^4.0.0",
     "serialport": "^6.2.2",
-    "wifi-control": "^2.0.1"
+    "sleep": "^5.2.3",
+    "uuid": "^3.3.2",
+    "wifi-control": "^2.0.1",
+    "xbee-api": "^0.6.0"
   }
 }
