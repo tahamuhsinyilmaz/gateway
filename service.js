@@ -2,11 +2,12 @@ const Gpio = require('onoff').Gpio
 const actions = require('./store/actions')
 const store = require('./store')
 const noble = require('./nobleSample')
+// const rpio = require('./rpio')
 
 const LED = new Gpio(4, 'out') //use GPIO pin 4 as output
-const motionSensor = new Gpio(13, 'in', 'both')
-const floodSensor = new Gpio(19, 'in', 'both')
-const smokeSensor = new Gpio(26, 'in', 'both')
+const motionSensor = new Gpio(22, 'in', 'both')
+const floodSensor = new Gpio(27, 'in', 'both')
+const smokeSensor = new Gpio(17, 'in', 'both')
 
 const cloud = require('./cloudServices')
 
@@ -16,7 +17,9 @@ motionSensor.watch((err, value) => { //Watch for hardware interrupts on pushButt
 	
 	const action = actions.createSensorAction({
 		actionType: actions.MOTION_SENSOR_UPDATE,
-		sensorId: '1',
+		sensorId: 'FBineZasPz',
+		type: 'motion',
+		name: 'Kamara',
 		batteryLow : false,
 		connected : true,
 		value
@@ -33,7 +36,9 @@ floodSensor.watch(function (err, value) { //Watch for hardware interrupts on pus
 	
 	const action = actions.createSensorAction({
 		actionType: actions.WATER_SENSOR_UPDATE,
-		sensorId: '2',
+		sensorId: 'iir1AOx11R',
+		type: 'water',
+		name: 'pruva',
 		batteryLow : false,
 		connected : true,
 		value
@@ -49,7 +54,9 @@ smokeSensor.watch(function (err, value) { //Watch for hardware interrupts on pus
 	
 	const action = actions.createSensorAction({
 		actionType: actions.SMOKE_SENSOR_UPDATE,
-		sensorId: '3',
+		sensorId: '75ujv4uaR1',
+		type: 'smoke',
+		name: 'Makine Dairesi',
 		batteryLow : false,
 		connected : true,
 		value

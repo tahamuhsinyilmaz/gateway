@@ -7,32 +7,61 @@ const initialState = {
 		plugged: true,
 		batterLevel: 100
 	},
-	armInfo: {
-		armed: false,
-		dateUpdated: '22082018 14:02 GMT'
+	mode: {
+		type: 'protection'
 	},
-	sensors: ['1', '2', '3'],
+	connection : {
+		type: 'wifi',
+		signal: 4
+	},
+	sensors: ['FBineZasPz', 'iir1AOx11R', 'zCGU5YAhze', 'A38pwvLEcH', '75ujv4uaR1', 'uVDVPnAUpG'],
 	alarms: [],
 	location  : {
-		lat        : 21.472322132,
-		lng        : 34.546732234,
+		lat        : 36.747057,
+		lng        : 28.941542,
 		accuracy   : 15.25,
-		dateUpdated: '22082018 14:02 GMT'
 	},
-	s_1: {
+	s_FBineZasPz: {
 		connected: true,
 		batteryLow: false,
-		value : 0
+		value : 0,
+		name: 'Kamara',
+		type: 'motion'
 	},
-	s_2: {
+	s_iir1AOx11R: {
 		connected: true,
 		batteryLow: false,
-		value : 0
+		value : 0,
+		name: 'Pruva',
+		type: 'water'
 	},
-	s_3: {
+	s_zCGU5YAhze: {
 		connected: true,
 		batteryLow: false,
-		value : 0
+		value : 0,
+		name: 'Pupa',
+		type: 'water'
+	},
+	s_A38pwvLEcH: {
+		connected: true,
+		batteryLow: false,
+		value : 13.5,
+		name: 'Akü',
+		type: 'battery'
+	},
+	s_75ujv4uaR1: {
+		connected: true,
+		batteryLow: false,
+		value : 0,
+		name: 'Makine Dairesi',
+		type: 'smoke'
+	},
+	s_uVDVPnAUpG: {
+		connected: true,
+		batteryLow: false,
+		value : 0,
+		name: 'Sahil 220',
+		type: 'power'
 	}
 }
 
@@ -43,15 +72,12 @@ module.exports = (state = initialState, action) => {
 		case actions.MOTION_SENSOR_UPDATE:
 		case actions.SMOKE_SENSOR_UPDATE:
 		case actions.WATER_SENSOR_UPDATE: {
-			return {...state, ['s_'+action.payload.sensorId]: action.payload }
+			const sensorId = action.payload.sensorId
+			delete action.payload.sensorId
+			return {...state, ['s_'+sensorId]: action.payload }
 		}
 		case actions.ALARM: {
-			
-			let alreadyExists = false
-			for (const alarm of state.alarms) {
-				if(alarm.sensorId === action.payload.sensorId && alarm.type === action.payload.type && action.payload.date - alarm.date < (1000 * 60)) alreadyExists = true
-			}
-			return alreadyExists ? state : {...state, alarms : [action.payload, ...state.alarms]}
+			return {...state, alarms : [action.payload, ...state.alarms]}
 		}
 		default:
 			return state

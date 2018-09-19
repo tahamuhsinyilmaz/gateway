@@ -9,15 +9,18 @@
     "aws-iot-device-sdk": "^2.2.1",
     "bleno": "^0.5.0",
     "debug": "~2.6.9",
+    "gps": "^0.4.7",
     "noble": "^1.9.1",
     "node-wifi": "^2.0.4",
     "onoff": "^3.2.1",
     "pi-wifi": "^1.2.0",
     "redux": "^4.0.0",
+    "rpio": "^0.9.22",
     "serialport": "^6.2.2",
     "sleep": "^5.2.3",
     "uuid": "^3.3.2",
     "wifi-control": "^2.0.1",
-    "xbee-api": "^0.6.0"
+    "xbee-api": "^0.6.0",
+    "wiring-pi": "^2.2.1"
   }
 }

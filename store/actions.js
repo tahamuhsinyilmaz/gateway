@@ -6,10 +6,10 @@ module.exports.WARNING = 'WARNING'
 
 const uuid = require('uuid/v4')
 
-module.exports.createSensorAction = function ({ actionType, sensorId, value, batteryLow, connected }) {
+module.exports.createSensorAction = function ({ actionType, sensorId, name, type, value, batteryLow, connected }) {
 	return {
 		type: actionType,
-		payload: { sensorId, value, batteryLow, connected }
+		payload: { sensorId, name, type, value, batteryLow, connected }
 	}
 }
 

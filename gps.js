@@ -1,21 +1,15 @@
-var SerialPort = require('serialport');
-
-
-/*
-raspi.init(() => {
-    const output = new gpio.DigitalOutput('GPIO18');
-    output.write(gpio.HIGH);
-});
-*/
-var port = new SerialPort('/dev/ttyS0', {
-    baudRate: 9600
+const SerialPort = require('serialport');
+const port = new SerialPort('/dev/ttyUSB0', { // change path
+	baudRate: 9600
 });
 
-port.on('open',()=> console.log('Port was opened'))
+const GPS = require('gps');
+const gps = new GPS;
 
-// Switches the port into "flowing mode"
-port.on('data', function (data) {
-    console.log(data.toString());
+gps.on('data', function(data) {
+	console.log("latitude: "+gps.state.lat, "longitude: "+gps.state.lon + "Speed over the ground: "+gps.state.speed );
 });
 
-
+port.on('data', function(data) {
+	gps.updatePartial(data);
+});
